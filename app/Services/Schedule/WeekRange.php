@@ -66,14 +66,21 @@ class WeekRange
     public function findOrCreateWeek(CarbonInterface $weekStart): ScheduleWeek
     {
         $range = $this->forDate($weekStart);
+        $startDate = $range['start']->toDateString();
 
-        return ScheduleWeek::query()->firstOrCreate(
-            ['week_start_date' => $range['start']->toDateString()],
-            [
-                'week_end_date' => $range['end']->toDateString(),
-                'is_locked' => false,
-            ],
-        );
+        $existing = ScheduleWeek::query()
+            ->whereDate('week_start_date', $startDate)
+            ->first();
+
+        if ($existing !== null) {
+            return $existing;
+        }
+
+        return ScheduleWeek::query()->create([
+            'week_start_date' => $startDate,
+            'week_end_date' => $range['end']->toDateString(),
+            'is_locked' => false,
+        ]);
     }
 
     public function assertUnlocked(ScheduleWeek $week): void
@@ -129,7 +136,10 @@ class WeekRange
         $matrix = [];
         foreach ($rows as $row) {
             $date = Carbon::parse($row->slot_date)->toDateString();
-            $matrix[$date][(int) $row->hour][$row->channel] = (int) $row->total;
+            $channel = $row->channel instanceof SupportChannel
+                ? $row->channel->value
+                : (string) $row->channel;
+            $matrix[$date][(int) $row->hour][$channel] = (int) $row->total;
         }
 
         return $matrix;

@@ -16,6 +16,8 @@ class RolesAndPermissionsSeeder extends Seeder
     {
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
+        $guard = 'web';
+
         $permissions = [
             'schedule.manage-own',
             'schedule.check-in',
@@ -26,13 +28,13 @@ class RolesAndPermissionsSeeder extends Seeder
         ];
 
         foreach ($permissions as $permission) {
-            Permission::findOrCreate($permission);
+            Permission::findOrCreate($permission, $guard);
         }
 
-        $admin = Role::findOrCreate('admin');
+        $admin = Role::findOrCreate('admin', $guard);
         $admin->syncPermissions($permissions);
 
-        $agent = Role::findOrCreate('agent');
+        $agent = Role::findOrCreate('agent', $guard);
         $agent->syncPermissions([
             'schedule.manage-own',
             'schedule.check-in',

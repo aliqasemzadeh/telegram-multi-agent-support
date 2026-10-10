@@ -11,24 +11,48 @@
             </flux:sidebar.header>
 
             <flux:sidebar.nav>
-                <flux:sidebar.group :heading="__('Platform')" class="grid">
+                <flux:sidebar.group :heading="__('app.nav.platform')" class="grid">
                     <flux:sidebar.item icon="home" :href="route('dashboard')" :current="request()->routeIs('dashboard')" wire:navigate>
-                        {{ __('Dashboard') }}
+                        {{ __('app.nav.dashboard') }}
                     </flux:sidebar.item>
+
+                    @can('schedule.check-in')
+                        <flux:sidebar.item icon="calendar-days" :href="route('user.index')" :current="request()->routeIs('user.index')" wire:navigate>
+                            {{ __('app.nav.attendance') }}
+                        </flux:sidebar.item>
+                    @endcan
+
+                    @can('schedule.manage-own')
+                        <flux:sidebar.item icon="calendar" :href="route('user.week')" :current="request()->routeIs('user.week')" wire:navigate>
+                            {{ __('app.nav.week_plan') }}
+                        </flux:sidebar.item>
+                    @endcan
                 </flux:sidebar.group>
+
+                @canany(['schedule.view-coverage', 'schedule.lock-week', 'agents.manage'])
+                    <flux:sidebar.group :heading="__('app.nav.admin')" class="grid">
+                        @can('schedule.view-coverage')
+                            <flux:sidebar.item icon="chart-bar" :href="route('admin.coverage')" :current="request()->routeIs('admin.coverage')" wire:navigate>
+                                {{ __('app.nav.coverage') }}
+                            </flux:sidebar.item>
+                        @endcan
+
+                        @can('schedule.lock-week')
+                            <flux:sidebar.item icon="lock" :href="route('admin.weeks')" :current="request()->routeIs('admin.weeks')" wire:navigate>
+                                {{ __('app.nav.weeks') }}
+                            </flux:sidebar.item>
+                        @endcan
+
+                        @can('agents.manage')
+                            <flux:sidebar.item icon="users" :href="route('admin.agents')" :current="request()->routeIs('admin.agents')" wire:navigate>
+                                {{ __('app.nav.agents') }}
+                            </flux:sidebar.item>
+                        @endcan
+                    </flux:sidebar.group>
+                @endcanany
             </flux:sidebar.nav>
 
             <flux:spacer />
-
-            <flux:sidebar.nav>
-                <flux:sidebar.item icon="folder-git-2" href="https://github.com/laravel/livewire-starter-kit" target="_blank">
-                    {{ __('Repository') }}
-                </flux:sidebar.item>
-
-                <flux:sidebar.item icon="book-open-text" href="https://laravel.com/docs/starter-kits#livewire" target="_blank">
-                    {{ __('Documentation') }}
-                </flux:sidebar.item>
-            </flux:sidebar.nav>
 
             <x-desktop-user-menu class="hidden lg:block" :name="auth()->user()->name" />
         </flux:sidebar>
