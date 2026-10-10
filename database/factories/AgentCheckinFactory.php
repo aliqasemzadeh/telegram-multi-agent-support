@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\AgentCheckin;
+use App\Models\AgentScheduleSlot;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -10,15 +11,19 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class AgentCheckinFactory extends Factory
 {
+    protected $model = AgentCheckin::class;
+
     /**
-     * Define the model's default state.
-     *
      * @return array<string, mixed>
      */
     public function definition(): array
     {
+        $slot = AgentScheduleSlot::factory()->create();
+
         return [
-            //
+            'agent_schedule_slot_id' => $slot->id,
+            'user_id' => $slot->user_id,
+            'checked_in_at' => now(),
         ];
     }
 }
