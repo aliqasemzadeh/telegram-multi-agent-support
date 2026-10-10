@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\SupportChannel;
+use App\Models\AgentScheduleSlot;
 use App\Models\User;
 use App\Services\Schedule\WeekRange;
 use Database\Seeders\RolesAndPermissionsSeeder;
@@ -68,13 +69,15 @@ class AdminScheduleCoverageTest extends TestCase
             ->call('assign')
             ->assertHasNoErrors();
 
-        $this->assertDatabaseHas('agent_schedule_slots', [
-            'user_id' => $agent->id,
-            'slot_date' => $date,
-            'hour' => 14,
-            'channel' => SupportChannel::Phone->value,
-            'source' => 'admin',
-        ]);
+        $this->assertTrue(
+            AgentScheduleSlot::query()
+                ->where('user_id', $agent->id)
+                ->whereDate('slot_date', $date)
+                ->where('hour', 14)
+                ->where('channel', SupportChannel::Phone->value)
+                ->where('source', 'admin')
+                ->exists()
+        );
     }
 
     public function test_agent_cannot_access_admin_coverage(): void
