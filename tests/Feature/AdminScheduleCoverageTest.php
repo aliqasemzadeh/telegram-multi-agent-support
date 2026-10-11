@@ -80,12 +80,13 @@ class AdminScheduleCoverageTest extends TestCase
         $weeks = app(WeekRange::class);
         $week = $weeks->findOrCreateWeek($weeks->upcomingWeek()['start']);
 
-        AgentScheduleSlot::factory()->create([
+        AgentScheduleSlot::query()->create([
             'schedule_week_id' => $week->id,
             'user_id' => $agent->id,
             'slot_date' => $week->week_start_date,
             'hour' => 10,
             'channel' => SupportChannel::Phone->value,
+            'source' => 'self',
         ]);
 
         $this->actingAs($admin);
@@ -142,12 +143,13 @@ class AdminScheduleCoverageTest extends TestCase
         $week = $weeks->findOrCreateWeek($range['start']);
         $date = $range['start']->toDateString();
 
-        AgentScheduleSlot::factory()->create([
+        AgentScheduleSlot::query()->create([
             'schedule_week_id' => $week->id,
             'user_id' => $agent->id,
             'slot_date' => $date,
             'hour' => 9,
             'channel' => SupportChannel::Phone->value,
+            'source' => 'self',
         ]);
 
         $this->actingAs($admin);

@@ -196,8 +196,8 @@ class WeekRange
 
     public function weekDateRange(ScheduleWeek $week): string
     {
-        $start = Jalalian::fromCarbon($week->week_start_date->copy()->startOfDay())->format('Y/m/d');
-        $end = Jalalian::fromCarbon($week->week_end_date->copy()->startOfDay())->format('Y/m/d');
+        $start = Jalalian::fromCarbon(Carbon::parse($week->week_start_date)->startOfDay())->format('Y/m/d');
+        $end = Jalalian::fromCarbon(Carbon::parse($week->week_end_date)->startOfDay())->format('Y/m/d');
 
         return $start.' — '.$end;
     }
@@ -206,8 +206,8 @@ class WeekRange
     {
         return __('app.schedule.week_number_label', [
             'number' => $this->weekNumber($week->week_start_date),
-            'start' => Jalalian::fromCarbon($week->week_start_date->copy()->startOfDay())->format('Y/m/d'),
-            'end' => Jalalian::fromCarbon($week->week_end_date->copy()->startOfDay())->format('Y/m/d'),
+            'start' => Jalalian::fromCarbon(Carbon::parse($week->week_start_date)->startOfDay())->format('Y/m/d'),
+            'end' => Jalalian::fromCarbon(Carbon::parse($week->week_end_date)->startOfDay())->format('Y/m/d'),
         ]);
     }
 
