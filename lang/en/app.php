@@ -90,4 +90,18 @@ return [
         'admin' => 'Admin',
         'agent' => 'Agent',
     ],
+
+    'welcome' => [
+        'title' => 'Welcome',
+        'brand' => 'TMAS',
+        'brand_full' => 'Telegram Multi-Agent Support',
+        'headline' => 'Multi-agent support, calmly coordinated.',
+        'supporting' => 'Route Telegram conversations across your team with clear coverage and steady operations.',
+        'login' => 'Log in',
+        'register' => 'Register',
+        'dashboard' => 'Dashboard',
+        'capability_routing' => 'Route chats to the right agent at the right hour.',
+        'capability_coverage' => 'See coverage gaps before customers feel them.',
+        'capability_attendance' => 'Keep attendance and weekly plans in one place.',
+    ],
 ];
