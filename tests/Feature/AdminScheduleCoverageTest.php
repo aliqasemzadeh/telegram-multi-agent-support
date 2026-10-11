@@ -27,9 +27,11 @@ class AdminScheduleCoverageTest extends TestCase
     {
         $admin = User::factory()->admin()->create();
 
-        $this->actingAs($admin)
-            ->get(route('admin.coverage'))
-            ->assertOk();
+        $response = $this->actingAs($admin)->get(route('admin.coverage'));
+        if ($response->status() !== 200) {
+            file_put_contents(storage_path('debug-coverage.txt'), $response->status()."\n".$response->exception?->getMessage()."\n".$response->exception?->getFile().':'.$response->exception?->getLine());
+        }
+        $response->assertOk();
     }
 
     public function test_admin_can_lock_week(): void
