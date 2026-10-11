@@ -17,6 +17,22 @@ return [
         'admin' => 'Admin',
     ],
 
+    'dashboard' => [
+        'title' => 'Dashboard',
+        'subtitle_agent' => 'Your scheduled hours and week access',
+        'subtitle_admin' => 'Agents list and weekly hour totals',
+        'phone_hours' => 'Phone hours',
+        'chat_hours' => 'Chat hours',
+        'total_hours' => 'Total hours',
+        'weeks' => 'Weeks',
+        'enter_week' => 'Enter week',
+        'select_week' => 'Select week',
+        'agents_hours' => 'Agent hours',
+        'no_weeks' => 'No weeks found.',
+        'no_agents' => 'No agents found.',
+        'team_totals' => 'Team totals',
+    ],
+
     'schedule' => [
         'week_title' => 'Weekly plan',
         'week_subtitle' => 'Set your hours for next week',
@@ -58,7 +74,19 @@ return [
         'filter_channel' => 'Channel filter',
         'all_channels' => 'All',
         'agents_on_slot' => 'Agents on this hour',
+        'no_agents_on_slot' => 'No agents assigned to this hour.',
         'no_agents_for_channel' => 'No agents support this channel.',
+        'week_number' => 'Week number',
+        'week_number_short' => 'Week :number',
+        'week_number_label' => 'Week :number (:start — :end)',
+        'add_week' => 'Add next week',
+        'week_added_toast' => 'Week added.',
+        'week_deleted_toast' => 'Week deleted.',
+        'week_not_empty' => 'A week with slots cannot be deleted.',
+        'view_coverage' => 'View coverage',
+        'prev_week' => 'Previous week',
+        'next_week' => 'Next week',
+        'unassign_toast' => 'Agent removed from this hour.',
     ],
 
     'agents' => [
@@ -76,6 +104,8 @@ return [
         'role' => 'Role',
         'search' => 'Search',
         'actions' => 'Actions',
+        'view_week' => 'View week',
+        'week_title' => ':name weekly plan',
     ],
 
     'common' => [
@@ -84,6 +114,7 @@ return [
         'edit' => 'Edit',
         'cancel' => 'Cancel',
         'are_you_sure' => 'Are you sure?',
+        'view' => 'View',
     ],
 
     'roles' => [

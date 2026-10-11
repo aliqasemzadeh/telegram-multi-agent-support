@@ -194,6 +194,20 @@ new #[Title('Agents')] class extends Component {
                         </flux:table.cell>
                         <flux:table.cell>
                             <div class="flex gap-1">
+                                @can('schedule.view-coverage')
+                                    @if ($agent->hasRole('agent'))
+                                        <flux:tooltip content="{{ __('app.agents.view_week') }}">
+                                            <flux:button
+                                                size="xs"
+                                                variant="primary"
+                                                color="sky"
+                                                icon="calendar"
+                                                :href="route('admin.agents.week', ['user' => $agent->id])"
+                                                wire:navigate
+                                            />
+                                        </flux:tooltip>
+                                    @endif
+                                @endcan
                                 <flux:tooltip content="{{ __('app.common.edit') }}">
                                     <flux:button
                                         size="xs"

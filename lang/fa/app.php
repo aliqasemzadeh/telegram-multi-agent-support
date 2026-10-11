@@ -17,6 +17,22 @@ return [
         'admin' => 'مدیریت',
     ],
 
+    'dashboard' => [
+        'title' => 'داشبورد',
+        'subtitle_agent' => 'آمار ساعات برنامه‌ریزی‌شده و ورود به هفته‌ها',
+        'subtitle_admin' => 'لیست پشتیبان‌ها و مجموع ساعات هفته',
+        'phone_hours' => 'ساعات تلفنی',
+        'chat_hours' => 'ساعات چت',
+        'total_hours' => 'مجموع ساعات',
+        'weeks' => 'هفته‌ها',
+        'enter_week' => 'ورود به هفته',
+        'select_week' => 'انتخاب هفته',
+        'agents_hours' => 'ساعات پشتیبان‌ها',
+        'no_weeks' => 'هفته‌ای یافت نشد.',
+        'no_agents' => 'پشتیبانی یافت نشد.',
+        'team_totals' => 'مجموع تیم',
+    ],
+
     'schedule' => [
         'week_title' => 'برنامه هفتگی',
         'week_subtitle' => 'ساعات هفته بعد را مشخص کنید',
@@ -58,7 +74,19 @@ return [
         'filter_channel' => 'فیلتر کانال',
         'all_channels' => 'همه',
         'agents_on_slot' => 'پشتیبان‌های این ساعت',
+        'no_agents_on_slot' => 'برای این ساعت پشتیبانی ثبت نشده است.',
         'no_agents_for_channel' => 'پشتیبان واجد این کانال یافت نشد.',
+        'week_number' => 'شماره هفته',
+        'week_number_short' => 'هفته :number',
+        'week_number_label' => 'هفته :number (:start — :end)',
+        'add_week' => 'افزودن هفته بعد',
+        'week_added_toast' => 'هفته جدید اضافه شد.',
+        'week_deleted_toast' => 'هفته حذف شد.',
+        'week_not_empty' => 'هفته‌ای که شیفت دارد قابل حذف نیست.',
+        'view_coverage' => 'مشاهده پوشش',
+        'prev_week' => 'هفته قبل',
+        'next_week' => 'هفته بعد',
+        'unassign_toast' => 'پشتیبان از این ساعت حذف شد.',
     ],
 
     'agents' => [
@@ -76,6 +104,8 @@ return [
         'role' => 'نقش',
         'search' => 'جستجو',
         'actions' => 'عملیات',
+        'view_week' => 'مشاهده هفته',
+        'week_title' => 'برنامه هفتگی :name',
     ],
 
     'common' => [
@@ -84,6 +114,7 @@ return [
         'edit' => 'ویرایش',
         'cancel' => 'انصراف',
         'are_you_sure' => 'آیا مطمئن هستید؟',
+        'view' => 'مشاهده',
     ],
 
     'roles' => [
