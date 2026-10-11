@@ -21,8 +21,8 @@ return new class extends Migration
             $table->string('source')->default('self');
             $table->timestamps();
 
-            $table->unique(['user_id', 'slot_date', 'hour', 'channel']);
-            $table->index(['schedule_week_id', 'slot_date', 'hour', 'channel']);
+            $table->unique(['user_id', 'slot_date', 'hour', 'channel'], 'ass_user_date_hour_channel_unique');
+            $table->index(['schedule_week_id', 'slot_date', 'hour', 'channel'], 'ass_week_date_hour_channel_index');
         });
     }
 
