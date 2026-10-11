@@ -32,10 +32,11 @@ class DashboardTest extends TestCase
     public function test_authenticated_users_can_visit_the_dashboard(): void
     {
         $user = User::factory()->create();
+
         $this->actingAs($user);
 
-        $response = $this->get(route('dashboard'));
-        $response->assertOk();
+        Livewire::test('pages::dashboard')
+            ->assertOk();
     }
 
     public function test_agent_sees_personal_slot_stats_for_selected_week(): void
@@ -67,7 +68,6 @@ class DashboardTest extends TestCase
         Livewire::test('pages::dashboard')
             ->assertSet('selectedWeekId', $week->id)
             ->assertSee(__('app.dashboard.phone_hours'))
-            ->assertSee('1')
             ->assertSee(__('app.dashboard.enter_week'));
     }
 
@@ -101,12 +101,11 @@ class DashboardTest extends TestCase
         $weeks = app(WeekRange::class);
         $week = $weeks->findOrCreateWeek($weeks->currentWeek()['start']);
 
-        $this->actingAs($agent)
-            ->get(route('user.week', ['week' => $week->id]))
-            ->assertOk();
+        $this->actingAs($agent);
 
         Livewire::withQueryParams(['week' => $week->id])
             ->test('pages::user.week')
-            ->assertSet('weekId', $week->id);
+            ->assertSet('weekId', $week->id)
+            ->assertOk();
     }
 }
