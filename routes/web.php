@@ -5,7 +5,7 @@ use Illuminate\Support\Facades\Route;
 Route::view('/', 'welcome')->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::view('dashboard', 'dashboard')->name('dashboard');
+    Route::livewire('dashboard', 'pages::dashboard')->name('dashboard');
 
     Route::middleware(['permission:schedule.check-in'])->group(function () {
         Route::livewire('user', 'pages::user.index')->name('user.index');
@@ -16,7 +16,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
     Route::middleware(['permission:schedule.view-coverage'])->group(function () {
-        Route::livewire('admin/coverage', 'pages::admin.coverage')->name('admin.coverage');
+        Route::livewire('admin/coverage/{week?}', 'pages::admin.coverage')->name('admin.coverage');
+        Route::livewire('admin/agents/{user}/week/{week?}', 'pages::admin.agent-week')->name('admin.agents.week');
     });
 
     Route::middleware(['permission:schedule.lock-week'])->group(function () {

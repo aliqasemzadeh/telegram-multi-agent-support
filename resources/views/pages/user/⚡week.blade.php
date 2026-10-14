@@ -3,11 +3,13 @@
 use App\Enums\ScheduleSlotSource;
 use App\Enums\SupportChannel;
 use App\Models\AgentScheduleSlot;
+use App\Models\ScheduleWeek;
 use App\Services\Schedule\WeekRange;
 use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 
 new #[Title('Weekly plan')] class extends Component {
@@ -22,14 +24,23 @@ new #[Title('Weekly plan')] class extends Component {
 
     public int $toHour = 17;
 
+    #[Url(as: 'week')]
+    public ?int $weekId = null;
+
     public function mount(WeekRange $weeks): void
     {
         abort_unless(Auth::user()?->can('schedule.manage-own'), 403);
 
-        $range = $weeks->upcomingWeek();
-        $this->rangeDay = $range['start']->toDateString();
+        if ($this->weekId !== null) {
+            $week = ScheduleWeek::query()->findOrFail($this->weekId);
+            $range = $weeks->forDate($week->week_start_date);
+        } else {
+            $range = $weeks->upcomingWeek();
+            $week = $weeks->findOrCreateWeek($range['start']);
+            $this->weekId = $week->id;
+        }
 
-        $week = $weeks->findOrCreateWeek($range['start']);
+        $this->rangeDay = $range['start']->toDateString();
         $userId = Auth::id();
 
         $slots = AgentScheduleSlot::query()
@@ -54,8 +65,8 @@ new #[Title('Weekly plan')] class extends Component {
     public function weekMeta(): array
     {
         $weeks = app(WeekRange::class);
-        $range = $weeks->upcomingWeek();
-        $week = $weeks->findOrCreateWeek($range['start']);
+        $week = ScheduleWeek::query()->findOrFail($this->weekId);
+        $range = $weeks->forDate($week->week_start_date);
 
         return [
             'range' => $range,
@@ -164,7 +175,13 @@ new #[Title('Weekly plan')] class extends Component {
 <section class="w-full space-y-6">
     <div class="flex flex-col gap-2">
         <flux:heading size="xl">{{ __('app.schedule.week_title') }}</flux:heading>
-        <flux:text>{{ __('app.schedule.week_subtitle') }} — {{ __('app.schedule.upcoming_week') }}</flux:text>
+        <flux:text>
+            {{ __('app.schedule.week_subtitle') }}
+            —
+            {{ app(\App\Services\Schedule\WeekRange::class)->dayLabel($this->weekMeta['week']->week_start_date) }}
+            /
+            {{ app(\App\Services\Schedule\WeekRange::class)->dayLabel($this->weekMeta['week']->week_end_date) }}
+        </flux:text>
     </div>
 
     @if ($this->weekMeta['locked'])

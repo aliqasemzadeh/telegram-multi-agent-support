@@ -3,6 +3,7 @@
 use App\Enums\ScheduleSlotSource;
 use App\Enums\SupportChannel;
 use App\Models\AgentScheduleSlot;
+use App\Models\ScheduleWeek;
 use App\Models\User;
 use App\Services\Schedule\WeekRange;
 use Flux\Flux;
@@ -15,7 +16,7 @@ use Livewire\Component;
 new #[Title('Coverage')] class extends Component {
     public string $channel = 'phone';
 
-    public string $weekMode = 'upcoming';
+    public ?int $week = null;
 
     public ?string $assignDate = null;
 
@@ -23,24 +24,34 @@ new #[Title('Coverage')] class extends Component {
 
     public ?int $assignUserId = null;
 
-    public function mount(): void
+    public function mount(WeekRange $weeks, ?int $week = null): void
     {
         abort_unless(Auth::user()?->can('schedule.view-coverage'), 403);
+
+        if ($week !== null) {
+            ScheduleWeek::query()->findOrFail($week);
+            $this->week = $week;
+
+            return;
+        }
+
+        $created = $weeks->findOrCreateWeek($weeks->upcomingWeek()['start']);
+        $this->week = $created->id;
     }
 
     #[Computed]
     public function weekMeta(): array
     {
         $weeks = app(WeekRange::class);
-        $range = $this->weekMode === 'current'
-            ? $weeks->currentWeek()
-            : $weeks->upcomingWeek();
-        $week = $weeks->findOrCreateWeek($range['start']);
+        $week = ScheduleWeek::query()->findOrFail($this->week);
+        $range = $weeks->forDate($week->week_start_date);
 
         return [
             'range' => $range,
             'week' => $week,
             'days' => $range['days'],
+            'label' => $weeks->weekLabel($week),
+            'number' => $weeks->weekNumber($week->week_start_date),
             'counts' => $weeks->coverageCounts($week, SupportChannel::from($this->channel)),
         ];
     }
@@ -57,13 +68,39 @@ new #[Title('Coverage')] class extends Component {
             ->get(['id', 'name']);
     }
 
-    public function openAssign(string $date, int $hour): void
+    #[Computed]
+    public function slotAgents()
     {
-        abort_unless(Auth::user()?->can('schedule.assign'), 403);
+        if ($this->assignDate === null || $this->assignHour === null || $this->week === null) {
+            return collect();
+        }
+
+        return app(WeekRange::class)->agentsOnSlot(
+            ScheduleWeek::query()->findOrFail($this->week),
+            $this->assignDate,
+            $this->assignHour,
+            SupportChannel::from($this->channel),
+        );
+    }
+
+    public function goAdjacent(int $direction, WeekRange $weeks): void
+    {
+        abort_unless(Auth::user()?->can('schedule.view-coverage'), 403);
+
+        $current = ScheduleWeek::query()->findOrFail($this->week);
+        $adjacent = $weeks->findOrCreateAdjacent($current, $direction);
+
+        $this->redirect(route('admin.coverage', ['week' => $adjacent->id]), navigate: true);
+    }
+
+    public function openSlot(string $date, int $hour): void
+    {
+        abort_unless(Auth::user()?->can('schedule.view-coverage'), 403);
 
         $this->assignDate = $date;
         $this->assignHour = $hour;
         $this->assignUserId = null;
+        unset($this->slotAgents);
 
         $this->modal('assign-agent')->show();
     }
@@ -109,11 +146,26 @@ new #[Title('Coverage')] class extends Component {
             ],
         );
 
-        unset($this->weekMeta);
-
-        $this->modal('assign-agent')->close();
+        unset($this->weekMeta, $this->slotAgents);
+        $this->assignUserId = null;
 
         Flux::toast(variant: 'success', text: __('app.schedule.assign_toast'));
+    }
+
+    public function unassign(int $slotId): void
+    {
+        abort_unless(Auth::user()?->can('schedule.assign'), 403);
+
+        $slot = AgentScheduleSlot::query()
+            ->where('schedule_week_id', $this->week)
+            ->whereKey($slotId)
+            ->firstOrFail();
+
+        $slot->delete();
+
+        unset($this->weekMeta, $this->slotAgents);
+
+        Flux::toast(variant: 'success', text: __('app.schedule.unassign_toast'));
     }
 }; ?>
 
@@ -124,16 +176,39 @@ new #[Title('Coverage')] class extends Component {
     </div>
 
     <flux:card class="space-y-4">
-        <div class="grid gap-4 md:grid-cols-2">
-            <flux:select wire:model.live="channel" :label="__('app.schedule.filter_channel')">
-                <flux:select.option value="phone">{{ __('app.channel.phone') }}</flux:select.option>
-                <flux:select.option value="chat">{{ __('app.channel.chat') }}</flux:select.option>
-            </flux:select>
+        <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div class="grid flex-1 gap-4 md:grid-cols-2">
+                <flux:select wire:model.live="channel" :label="__('app.schedule.filter_channel')">
+                    <flux:select.option value="phone">{{ __('app.channel.phone') }}</flux:select.option>
+                    <flux:select.option value="chat">{{ __('app.channel.chat') }}</flux:select.option>
+                </flux:select>
 
-            <flux:select wire:model.live="weekMode" :label="__('app.schedule.day')">
-                <flux:select.option value="current">{{ __('app.schedule.current_week') }}</flux:select.option>
-                <flux:select.option value="upcoming">{{ __('app.schedule.upcoming_week') }}</flux:select.option>
-            </flux:select>
+                <div>
+                    <flux:text class="mb-1 text-sm font-medium">{{ __('app.schedule.week_number') }}</flux:text>
+                    <flux:text>{{ $this->weekMeta['label'] }}</flux:text>
+                </div>
+            </div>
+
+            <div class="flex gap-2">
+                <flux:tooltip content="{{ __('app.schedule.prev_week') }}">
+                    <flux:button
+                        size="sm"
+                        variant="primary"
+                        color="zinc"
+                        icon="chevron-right"
+                        wire:click="goAdjacent(-1)"
+                    />
+                </flux:tooltip>
+                <flux:tooltip content="{{ __('app.schedule.next_week') }}">
+                    <flux:button
+                        size="sm"
+                        variant="primary"
+                        color="zinc"
+                        icon="chevron-left"
+                        wire:click="goAdjacent(1)"
+                    />
+                </flux:tooltip>
+            </div>
         </div>
     </flux:card>
 
@@ -168,7 +243,7 @@ new #[Title('Coverage')] class extends Component {
                             <td class="border-b border-e border-zinc-200 p-0.5 dark:border-zinc-700">
                                 <button
                                     type="button"
-                                    wire:click="openAssign('{{ $date }}', {{ $hour }})"
+                                    wire:click="openSlot('{{ $date }}', {{ $hour }})"
                                     class="flex h-8 w-full items-center justify-center rounded {{ $classes }}"
                                     title="{{ $count > 0 ? __('app.schedule.covered') : __('app.schedule.empty_slot') }}"
                                 >
@@ -185,27 +260,70 @@ new #[Title('Coverage')] class extends Component {
     <flux:modal name="assign-agent" flyout position="right" class="md:w-96">
         <div class="space-y-6">
             <div>
-                <flux:heading size="lg">{{ __('app.schedule.assign') }}</flux:heading>
+                <flux:heading size="lg">{{ __('app.schedule.agents_on_slot') }}</flux:heading>
                 <flux:text class="mt-2">
                     {{ $assignDate }} — {{ $assignHour !== null ? sprintf('%02d:00', $assignHour) : '' }}
                     ({{ __('app.channel.'.$channel) }})
                 </flux:text>
             </div>
 
-            <form wire:submit="assign" class="space-y-4">
-                <flux:select wire:model="assignUserId" :label="__('app.schedule.select_agent')" searchable>
-                    @forelse ($this->agentsForChannel as $agent)
-                        <flux:select.option value="{{ $agent->id }}">{{ $agent->name }}</flux:select.option>
-                    @empty
-                        <flux:select.option value="" disabled>{{ __('app.schedule.no_agents_for_channel') }}</flux:select.option>
-                    @endforelse
-                </flux:select>
-                <flux:error name="assignUserId" />
+            <div class="space-y-2">
+                @forelse ($this->slotAgents as $slot)
+                    <div class="flex items-center justify-between gap-2 rounded-lg border border-zinc-200 px-3 py-2 dark:border-zinc-700" wire:key="slot-agent-{{ $slot->id }}">
+                        <div class="min-w-0">
+                            <flux:text class="font-medium">{{ $slot->user?->name }}</flux:text>
+                            <flux:text class="text-xs">{{ __('app.channel.'.$slot->channel->value) }}</flux:text>
+                        </div>
+                        <div class="flex gap-1">
+                            @can('schedule.view-coverage')
+                                <flux:tooltip content="{{ __('app.agents.view_week') }}">
+                                    <flux:button
+                                        size="xs"
+                                        variant="primary"
+                                        color="sky"
+                                        icon="calendar"
+                                        :href="route('admin.agents.week', ['user' => $slot->user_id, 'week' => $week])"
+                                        wire:navigate
+                                    />
+                                </flux:tooltip>
+                            @endcan
+                            @can('schedule.assign')
+                                <flux:tooltip content="{{ __('app.common.delete') }}">
+                                    <flux:button
+                                        size="xs"
+                                        variant="primary"
+                                        color="red"
+                                        icon="trash"
+                                        wire:click="unassign({{ $slot->id }})"
+                                        wire:confirm="{{ __('app.common.are_you_sure') }}"
+                                    />
+                                </flux:tooltip>
+                            @endcan
+                        </div>
+                    </div>
+                @empty
+                    <flux:text>{{ __('app.schedule.no_agents_on_slot') }}</flux:text>
+                @endforelse
+            </div>
 
-                <flux:button type="submit" variant="primary" color="orange" class="w-full">
-                    {{ __('app.common.save') }}
-                </flux:button>
-            </form>
+            @can('schedule.assign')
+                <form wire:submit="assign" class="space-y-4 border-t border-zinc-200 pt-4 dark:border-zinc-700">
+                    <flux:heading size="md">{{ __('app.schedule.assign') }}</flux:heading>
+
+                    <flux:select wire:model="assignUserId" :label="__('app.schedule.select_agent')" searchable>
+                        @forelse ($this->agentsForChannel as $agent)
+                            <flux:select.option value="{{ $agent->id }}">{{ $agent->name }}</flux:select.option>
+                        @empty
+                            <flux:select.option value="" disabled>{{ __('app.schedule.no_agents_for_channel') }}</flux:select.option>
+                        @endforelse
+                    </flux:select>
+                    <flux:error name="assignUserId" />
+
+                    <flux:button type="submit" variant="primary" color="orange" class="w-full">
+                        {{ __('app.common.save') }}
+                    </flux:button>
+                </form>
+            @endcan
         </div>
     </flux:modal>
 </section>

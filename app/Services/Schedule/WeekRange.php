@@ -181,4 +181,84 @@ class WeekRange
     {
         return sprintf('%02d:00', $hour);
     }
+
+    /**
+     * Jalali week-of-year (Saturday-start weeks; week 1 contains Farvardin 1).
+     */
+    public function weekNumber(CarbonInterface $date): int
+    {
+        $jalali = Jalalian::fromCarbon(Carbon::parse($date)->startOfDay());
+        $yearStart = new Jalalian($jalali->getYear(), 1, 1);
+        $offset = $yearStart->getDayOfWeek();
+
+        return (int) floor(($jalali->getDayOfYear() - 1 + $offset) / 7) + 1;
+    }
+
+    public function weekDateRange(ScheduleWeek $week): string
+    {
+        $start = Jalalian::fromCarbon(Carbon::parse($week->week_start_date)->startOfDay())->format('Y/m/d');
+        $end = Jalalian::fromCarbon(Carbon::parse($week->week_end_date)->startOfDay())->format('Y/m/d');
+
+        return $start.' — '.$end;
+    }
+
+    public function weekLabel(ScheduleWeek $week): string
+    {
+        return __('app.schedule.week_number_label', [
+            'number' => $this->weekNumber($week->week_start_date),
+            'start' => Jalalian::fromCarbon(Carbon::parse($week->week_start_date)->startOfDay())->format('Y/m/d'),
+            'end' => Jalalian::fromCarbon(Carbon::parse($week->week_end_date)->startOfDay())->format('Y/m/d'),
+        ]);
+    }
+
+    public function addWeekAfterLatest(): ScheduleWeek
+    {
+        $latest = ScheduleWeek::query()
+            ->orderByDesc('week_start_date')
+            ->first();
+
+        $base = $latest !== null
+            ? $latest->week_start_date->copy()->addWeek()
+            : $this->currentWeek()['start'];
+
+        return $this->findOrCreateWeek($base);
+    }
+
+    public function findOrCreateAdjacent(ScheduleWeek $week, int $direction): ScheduleWeek
+    {
+        $direction = $direction >= 0 ? 1 : -1;
+        $target = $week->week_start_date->copy()->addWeeks($direction);
+
+        return $this->findOrCreateWeek($target);
+    }
+
+    public function deleteIfEmpty(ScheduleWeek $week): void
+    {
+        if ($week->slots()->exists()) {
+            throw ValidationException::withMessages([
+                'week' => [__('app.schedule.week_not_empty')],
+            ]);
+        }
+
+        $week->delete();
+    }
+
+    /**
+     * @return Collection<int, AgentScheduleSlot>
+     */
+    public function agentsOnSlot(
+        ScheduleWeek $week,
+        string $date,
+        int $hour,
+        SupportChannel $channel,
+    ): Collection {
+        return AgentScheduleSlot::query()
+            ->with('user:id,name')
+            ->where('schedule_week_id', $week->id)
+            ->whereDate('slot_date', $date)
+            ->where('hour', $hour)
+            ->where('channel', $channel->value)
+            ->orderBy('id')
+            ->get();
+    }
 }
