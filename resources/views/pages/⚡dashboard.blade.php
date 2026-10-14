@@ -60,25 +60,8 @@ new #[Title('Dashboard')] class extends Component {
     public function weeks()
     {
         $service = app(WeekRange::class);
-        $ensureIds = [
-            $service->findOrCreateWeek($service->currentWeek()['start'])->id,
-            $service->findOrCreateWeek($service->upcomingWeek()['start'])->id,
-        ];
-
-        if ($this->isAgent) {
-            $slotWeekIds = AgentScheduleSlot::query()
-                ->where('user_id', Auth::id())
-                ->distinct()
-                ->pluck('schedule_week_id')
-                ->all();
-
-            $ids = array_values(array_unique([...$ensureIds, ...$slotWeekIds]));
-
-            return ScheduleWeek::query()
-                ->whereIn('id', $ids)
-                ->orderByDesc('week_start_date')
-                ->get();
-        }
+        $service->findOrCreateWeek($service->currentWeek()['start']);
+        $service->findOrCreateWeek($service->upcomingWeek()['start']);
 
         return ScheduleWeek::query()
             ->orderByDesc('week_start_date')

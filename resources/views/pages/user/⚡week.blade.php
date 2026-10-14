@@ -7,6 +7,7 @@ use App\Models\ScheduleWeek;
 use App\Services\Schedule\WeekRange;
 use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
@@ -41,7 +42,16 @@ new #[Title('Weekly plan')] class extends Component {
         }
 
         $this->rangeDay = $range['start']->toDateString();
-        $userId = Auth::id();
+        $user = Auth::user();
+        $userId = $user?->id;
+
+        if ($user?->supports_phone) {
+            $this->channel = 'phone';
+        } elseif ($user?->supports_chat) {
+            $this->channel = 'chat';
+        } else {
+            $this->channel = '';
+        }
 
         $slots = AgentScheduleSlot::query()
             ->where('schedule_week_id', $week->id)
@@ -76,9 +86,30 @@ new #[Title('Weekly plan')] class extends Component {
         ];
     }
 
+    public function goAdjacent(int $direction, WeekRange $weeks): void
+    {
+        abort_unless(Auth::user()?->can('schedule.manage-own'), 403);
+
+        $current = ScheduleWeek::query()->findOrFail($this->weekId);
+        $adjacent = $weeks->findOrCreateAdjacent($current, $direction);
+
+        $this->redirect(
+            route('user.week', ['week' => $adjacent->id]),
+            navigate: true,
+        );
+    }
+
     public function toggle(string $date, int $hour): void
     {
         $this->ensureEditable();
+
+        $user = Auth::user();
+        if ($this->channel === '' ||
+            ($this->channel === 'phone' && ! $user?->supports_phone) ||
+            ($this->channel === 'chat' && ! $user?->supports_chat)
+        ) {
+            return;
+        }
 
         $current = $this->grid[$date][$hour] ?? null;
 
@@ -93,11 +124,20 @@ new #[Title('Weekly plan')] class extends Component {
     {
         $this->ensureEditable();
 
+        $user = Auth::user();
+        $allowedChannels = [];
+        if ($user?->supports_phone) {
+            $allowedChannels[] = 'phone';
+        }
+        if ($user?->supports_chat) {
+            $allowedChannels[] = 'chat';
+        }
+
         $this->validate([
             'rangeDay' => ['required', 'date'],
             'fromHour' => ['required', 'integer', 'min:0', 'max:23'],
             'toHour' => ['required', 'integer', 'min:0', 'max:23', 'gte:fromHour'],
-            'channel' => ['required', 'in:phone,chat'],
+            'channel' => ['required', Rule::in($allowedChannels)],
         ]);
 
         if (! array_key_exists($this->rangeDay, $this->grid)) {
@@ -173,15 +213,38 @@ new #[Title('Weekly plan')] class extends Component {
 }; ?>
 
 <section class="w-full space-y-6">
-    <div class="flex flex-col gap-2">
-        <flux:heading size="xl">{{ __('app.schedule.week_title') }}</flux:heading>
-        <flux:text>
-            {{ __('app.schedule.week_subtitle') }}
-            —
-            {{ app(\App\Services\Schedule\WeekRange::class)->dayLabel($this->weekMeta['week']->week_start_date) }}
-            /
-            {{ app(\App\Services\Schedule\WeekRange::class)->dayLabel($this->weekMeta['week']->week_end_date) }}
-        </flux:text>
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div class="flex flex-col gap-2">
+            <flux:heading size="xl">{{ __('app.schedule.week_title') }}</flux:heading>
+            <flux:text>
+                {{ __('app.schedule.week_subtitle') }}
+                —
+                {{ app(\App\Services\Schedule\WeekRange::class)->dayLabel($this->weekMeta['week']->week_start_date) }}
+                /
+                {{ app(\App\Services\Schedule\WeekRange::class)->dayLabel($this->weekMeta['week']->week_end_date) }}
+            </flux:text>
+        </div>
+
+        <div class="flex gap-2">
+            <flux:tooltip content="{{ __('app.schedule.prev_week') }}">
+                <flux:button
+                    size="sm"
+                    variant="primary"
+                    color="zinc"
+                    icon="chevron-right"
+                    wire:click="goAdjacent(-1)"
+                />
+            </flux:tooltip>
+            <flux:tooltip content="{{ __('app.schedule.next_week') }}">
+                <flux:button
+                    size="sm"
+                    variant="primary"
+                    color="zinc"
+                    icon="chevron-left"
+                    wire:click="goAdjacent(1)"
+                />
+            </flux:tooltip>
+        </div>
     </div>
 
     @if ($this->weekMeta['locked'])
@@ -190,59 +253,69 @@ new #[Title('Weekly plan')] class extends Component {
         </flux:callout>
     @endif
 
-    <flux:card class="space-y-4">
-        <div class="grid gap-4 md:grid-cols-4">
-            <flux:select wire:model.live="channel" :label="__('app.schedule.channel')">
-                <flux:select.option value="phone">{{ __('app.channel.phone') }}</flux:select.option>
-                <flux:select.option value="chat">{{ __('app.channel.chat') }}</flux:select.option>
-            </flux:select>
+    @if (! auth()->user()?->supports_phone && ! auth()->user()?->supports_chat)
+        <flux:callout variant="danger">
+            {{ __('app.schedule.no_agents_for_channel') }}
+        </flux:callout>
+    @else
+        <flux:card class="space-y-4">
+            <div class="grid gap-4 md:grid-cols-4">
+                <flux:select wire:model.live="channel" :label="__('app.schedule.channel')">
+                    @if (auth()->user()?->supports_phone)
+                        <flux:select.option value="phone">{{ __('app.channel.phone') }}</flux:select.option>
+                    @endif
+                    @if (auth()->user()?->supports_chat)
+                        <flux:select.option value="chat">{{ __('app.channel.chat') }}</flux:select.option>
+                    @endif
+                </flux:select>
 
-            <flux:select wire:model="rangeDay" :label="__('app.schedule.day')">
-                @foreach ($this->weekMeta['days'] as $day)
-                    <flux:select.option value="{{ $day->toDateString() }}">
-                        {{ app(\App\Services\Schedule\WeekRange::class)->dayLabel($day) }}
-                    </flux:select.option>
-                @endforeach
-            </flux:select>
+                <flux:select wire:model="rangeDay" :label="__('app.schedule.day')">
+                    @foreach ($this->weekMeta['days'] as $day)
+                        <flux:select.option value="{{ $day->toDateString() }}">
+                            {{ app(\App\Services\Schedule\WeekRange::class)->dayLabel($day) }}
+                        </flux:select.option>
+                    @endforeach
+                </flux:select>
 
-            <flux:select wire:model="fromHour" :label="__('app.schedule.from_hour')">
-                @for ($h = 0; $h < 24; $h++)
-                    <flux:select.option value="{{ $h }}">{{ sprintf('%02d:00', $h) }}</flux:select.option>
-                @endfor
-            </flux:select>
+                <flux:select wire:model="fromHour" :label="__('app.schedule.from_hour')">
+                    @for ($h = 0; $h < 24; $h++)
+                        <flux:select.option value="{{ $h }}">{{ sprintf('%02d:00', $h) }}</flux:select.option>
+                    @endfor
+                </flux:select>
 
-            <flux:select wire:model="toHour" :label="__('app.schedule.to_hour')">
-                @for ($h = 0; $h < 24; $h++)
-                    <flux:select.option value="{{ $h }}">{{ sprintf('%02d:00', $h) }}</flux:select.option>
-                @endfor
-            </flux:select>
-        </div>
+                <flux:select wire:model="toHour" :label="__('app.schedule.to_hour')">
+                    @for ($h = 0; $h < 24; $h++)
+                        <flux:select.option value="{{ $h }}">{{ sprintf('%02d:00', $h) }}</flux:select.option>
+                    @endfor
+                </flux:select>
+            </div>
 
-        <div class="flex flex-wrap gap-2">
-            <flux:button
-                type="button"
-                variant="primary"
-                color="teal"
-                icon="calendar-days"
-                wire:click="applyRange"
-                :disabled="$this->weekMeta['locked']"
-                class="w-full sm:w-auto"
-            >
-                {{ __('app.schedule.apply_range') }}
-            </flux:button>
+            <div class="flex flex-wrap gap-2">
+                <flux:button
+                    type="button"
+                    variant="primary"
+                    color="teal"
+                    icon="calendar-days"
+                    wire:click="applyRange"
+                    :disabled="$this->weekMeta['locked']"
+                    class="w-full sm:w-auto"
+                >
+                    {{ __('app.schedule.apply_range') }}
+                </flux:button>
 
-            <flux:button
-                type="button"
-                variant="primary"
-                color="orange"
-                wire:click="save"
-                :disabled="$this->weekMeta['locked']"
-                class="w-full sm:w-auto"
-            >
-                {{ __('app.schedule.save') }}
-            </flux:button>
-        </div>
-    </flux:card>
+                <flux:button
+                    type="button"
+                    variant="primary"
+                    color="orange"
+                    wire:click="save"
+                    :disabled="$this->weekMeta['locked']"
+                    class="w-full sm:w-auto"
+                >
+                    {{ __('app.schedule.save') }}
+                </flux:button>
+            </div>
+        </flux:card>
+    @endif
 
     <div class="overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-700">
         <table class="min-w-full border-collapse text-xs">

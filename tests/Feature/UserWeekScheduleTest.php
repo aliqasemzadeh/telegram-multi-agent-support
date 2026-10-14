@@ -107,4 +107,85 @@ class UserWeekScheduleTest extends TestCase
         $this->assertSame('chat', $component->get('grid')[$date][9]);
         $this->assertSame('chat', $component->get('grid')[$date][10]);
     }
+
+    public function test_chat_only_agent_defaults_to_chat_channel_and_can_save_slots(): void
+    {
+        $user = User::factory()->agent()->create([
+            'supports_phone' => false,
+            'supports_chat' => true,
+        ]);
+        $weeks = app(WeekRange::class);
+        $range = $weeks->upcomingWeek();
+        $date = $range['start']->toDateString();
+
+        $this->actingAs($user);
+
+        $component = Livewire::test('pages::user.week')
+            ->assertSet('channel', 'chat');
+
+        $grid = $component->get('grid');
+        $grid[$date][14] = SupportChannel::Chat->value;
+
+        $component->set('grid', $grid)
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('agent_schedule_slots', [
+            'user_id' => $user->id,
+            'slot_date' => $date,
+            'hour' => 14,
+            'channel' => 'chat',
+        ]);
+    }
+
+    public function test_agent_can_navigate_adjacent_weeks(): void
+    {
+        $user = User::factory()->agent()->create();
+        $weeks = app(WeekRange::class);
+        $upcoming = $weeks->upcomingWeek();
+        $currentWeek = $weeks->findOrCreateWeek($upcoming['start']);
+        $nextWeek = $weeks->findOrCreateAdjacent($currentWeek, 1);
+
+        $this->actingAs($user);
+
+        Livewire::test('pages::user.week', ['week' => $currentWeek->id])
+            ->call('goAdjacent', 1)
+            ->assertRedirect(route('user.week', ['week' => $nextWeek->id]));
+    }
+
+    public function test_agent_sees_all_weeks_on_dashboard_without_prior_slots(): void
+    {
+        $user = User::factory()->agent()->create();
+        $weeks = app(WeekRange::class);
+        $current = $weeks->findOrCreateWeek($weeks->currentWeek()['start']);
+        $upcoming = $weeks->findOrCreateWeek($weeks->upcomingWeek()['start']);
+        $futureWeek = $weeks->findOrCreateAdjacent($upcoming, 1);
+
+        $this->actingAs($user);
+
+        Livewire::test('pages::dashboard')
+            ->assertSee($weeks->dayLabel($futureWeek->week_start_date));
+    }
+
+    public function test_registered_user_gets_agent_role_and_can_view_week(): void
+    {
+        $response = $this->post(route('register.store'), [
+            'name' => 'New Agent User',
+            'email' => 'newagent@example.com',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+        ]);
+
+        $response->assertSessionHasNoErrors();
+
+        $newUser = User::where('email', 'newagent@example.com')->firstOrFail();
+        $this->assertTrue($newUser->hasRole('agent'));
+        $this->assertTrue($newUser->can('schedule.manage-own'));
+
+        $newUser->markEmailAsVerified();
+
+        $this->actingAs($newUser)
+            ->get(route('user.week'))
+            ->assertOk();
+    }
 }
