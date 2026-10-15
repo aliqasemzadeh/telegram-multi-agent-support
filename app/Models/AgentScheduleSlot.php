@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\ScheduleSlotSource;
 use App\Enums\SupportChannel;
 use Database\Factories\AgentScheduleSlotFactory;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -45,9 +46,23 @@ class AgentScheduleSlot extends Model
         return [
             'slot_date' => 'date',
             'hour' => 'integer',
-            'channel' => SupportChannel::class,
             'source' => ScheduleSlotSource::class,
         ];
+    }
+
+    /**
+     * @return Attribute<SupportChannel, SupportChannel|string>
+     */
+    protected function channel(): Attribute
+    {
+        return Attribute::make(
+            get: fn (mixed $value): SupportChannel => $value instanceof SupportChannel
+                ? $value
+                : (SupportChannel::tryFrom((string) $value) ?? SupportChannel::Phone),
+            set: fn (SupportChannel|string $value): string => $value instanceof SupportChannel
+                ? $value->value
+                : (SupportChannel::tryFrom($value)?->value ?? SupportChannel::Phone->value),
+        );
     }
 
     public function scheduleWeek(): BelongsTo

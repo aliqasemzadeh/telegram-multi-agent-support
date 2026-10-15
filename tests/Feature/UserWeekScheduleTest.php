@@ -3,10 +3,12 @@
 namespace Tests\Feature;
 
 use App\Enums\SupportChannel;
+use App\Models\AgentScheduleSlot;
 use App\Models\User;
 use App\Services\Schedule\WeekRange;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -179,6 +181,32 @@ class UserWeekScheduleTest extends TestCase
         $newUser->markEmailAsVerified();
 
         $this->actingAs($newUser)
+            ->get(route('user.week'))
+            ->assertOk();
+    }
+
+    public function test_legacy_chat_channel_value_falls_back_to_phone_without_value_error(): void
+    {
+        $user = User::factory()->agent()->create();
+        $weeks = app(WeekRange::class);
+        $week = $weeks->findOrCreateWeek($weeks->upcomingWeek()['start']);
+
+        DB::table('agent_schedule_slots')->insert([
+            'schedule_week_id' => $week->id,
+            'user_id' => $user->id,
+            'slot_date' => $week->week_start_date->toDateString(),
+            'hour' => 9,
+            'channel' => 'chat',
+            'source' => 'self',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $slot = AgentScheduleSlot::query()->firstOrFail();
+
+        $this->assertSame(SupportChannel::Phone, $slot->channel);
+
+        $this->actingAs($user)
             ->get(route('user.week'))
             ->assertOk();
     }

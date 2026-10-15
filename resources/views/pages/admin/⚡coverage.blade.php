@@ -45,6 +45,7 @@ new #[Title('Coverage')] class extends Component {
         $weeks = app(WeekRange::class);
         $week = ScheduleWeek::query()->findOrFail($this->week);
         $range = $weeks->forDate($week->week_start_date);
+        $channel = SupportChannel::tryFrom($this->channel) ?? SupportChannel::Phone;
 
         return [
             'range' => $range,
@@ -52,7 +53,7 @@ new #[Title('Coverage')] class extends Component {
             'days' => $range['days'],
             'label' => $weeks->weekLabel($week),
             'number' => $weeks->weekNumber($week->week_start_date),
-            'counts' => $weeks->coverageCounts($week, SupportChannel::from($this->channel)),
+            'counts' => $weeks->coverageCounts($week, $channel),
         ];
     }
 
@@ -77,7 +78,7 @@ new #[Title('Coverage')] class extends Component {
             ScheduleWeek::query()->findOrFail($this->week),
             $this->assignDate,
             $this->assignHour,
-            SupportChannel::from($this->channel),
+            SupportChannel::tryFrom($this->channel) ?? SupportChannel::Phone,
         );
     }
 
@@ -115,7 +116,7 @@ new #[Title('Coverage')] class extends Component {
         ]);
 
         $user = User::query()->findOrFail($this->assignUserId);
-        $channel = SupportChannel::from($this->channel);
+        $channel = SupportChannel::tryFrom($this->channel) ?? SupportChannel::Phone;
 
         if ($channel === SupportChannel::Phone && ! $user->supports_phone) {
             $this->addError('assignUserId', __('app.schedule.no_agents_for_channel'));
