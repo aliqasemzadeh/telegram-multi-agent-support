@@ -59,11 +59,9 @@ new #[Title('Coverage')] class extends Component {
     #[Computed]
     public function agentsForChannel()
     {
-        $column = $this->channel === 'phone' ? 'supports_phone' : 'supports_chat';
-
         return User::query()
             ->role('agent')
-            ->where($column, true)
+            ->where('supports_phone', true)
             ->orderBy('name')
             ->get(['id', 'name']);
     }
@@ -113,19 +111,13 @@ new #[Title('Coverage')] class extends Component {
             'assignDate' => ['required', 'date'],
             'assignHour' => ['required', 'integer', 'min:0', 'max:23'],
             'assignUserId' => ['required', 'integer', Rule::exists('users', 'id')],
-            'channel' => ['required', 'in:phone,chat'],
+            'channel' => ['required', 'in:phone'],
         ]);
 
         $user = User::query()->findOrFail($this->assignUserId);
         $channel = SupportChannel::from($this->channel);
 
         if ($channel === SupportChannel::Phone && ! $user->supports_phone) {
-            $this->addError('assignUserId', __('app.schedule.no_agents_for_channel'));
-
-            return;
-        }
-
-        if ($channel === SupportChannel::Chat && ! $user->supports_chat) {
             $this->addError('assignUserId', __('app.schedule.no_agents_for_channel'));
 
             return;
@@ -180,7 +172,6 @@ new #[Title('Coverage')] class extends Component {
             <div class="grid flex-1 gap-4 md:grid-cols-2">
                 <flux:select wire:model.live="channel" :label="__('app.schedule.filter_channel')">
                     <flux:select.option value="phone">{{ __('app.channel.phone') }}</flux:select.option>
-                    <flux:select.option value="chat">{{ __('app.channel.chat') }}</flux:select.option>
                 </flux:select>
 
                 <div>

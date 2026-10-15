@@ -13,7 +13,6 @@ return new class extends Migration
     {
         Schema::table('users', function (Blueprint $table) {
             $table->boolean('supports_phone')->default(true)->after('password');
-            $table->boolean('supports_chat')->default(true)->after('supports_phone');
         });
     }
 
@@ -23,7 +22,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn(['supports_phone', 'supports_chat']);
+            $table->dropColumn(['supports_phone']);
         });
     }
 };

@@ -59,7 +59,7 @@ class DashboardTest extends TestCase
             'user_id' => $agent->id,
             'slot_date' => $date,
             'hour' => 10,
-            'channel' => SupportChannel::Chat,
+            'channel' => SupportChannel::Phone,
             'source' => ScheduleSlotSource::Self,
         ]);
 

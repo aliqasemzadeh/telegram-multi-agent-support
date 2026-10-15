@@ -3,7 +3,6 @@
 return [
     'channel' => [
         'phone' => 'Phone',
-        'chat' => 'Chat',
     ],
 
     'nav' => [
@@ -22,7 +21,6 @@ return [
         'subtitle_agent' => 'Your scheduled hours and week access',
         'subtitle_admin' => 'Agents list and weekly hour totals',
         'phone_hours' => 'Phone hours',
-        'chat_hours' => 'Chat hours',
         'total_hours' => 'Total hours',
         'weeks' => 'Weeks',
         'enter_week' => 'Enter week',
@@ -91,7 +89,7 @@ return [
 
     'agents' => [
         'title' => 'Agents',
-        'subtitle' => 'Manage phone and chat support agents',
+        'subtitle' => 'Manage phone support agents',
         'create' => 'New agent',
         'edit' => 'Edit agent',
         'saved' => 'Agent saved.',
@@ -100,7 +98,6 @@ return [
         'email' => 'Email',
         'password' => 'Password',
         'supports_phone' => 'Phone',
-        'supports_chat' => 'Chat',
         'role' => 'Role',
         'search' => 'Search',
         'actions' => 'Actions',

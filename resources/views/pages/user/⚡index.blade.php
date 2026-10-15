@@ -108,7 +108,7 @@ new #[Title('Attendance')] class extends Component {
                         <flux:table.row wire:key="today-slot-{{ $slot->id }}">
                             <flux:table.cell>{{ sprintf('%02d:00', $slot->hour) }}</flux:table.cell>
                             <flux:table.cell>
-                                <flux:badge :color="$slot->channel->value === 'phone' ? 'sky' : 'emerald'" size="sm">
+                                <flux:badge color="sky" size="sm">
                                     {{ $slot->channel->label() }}
                                 </flux:badge>
                             </flux:table.cell>
@@ -145,7 +145,7 @@ new #[Title('Attendance')] class extends Component {
                 <div class="flex flex-wrap gap-2">
                     @foreach ($slots as $slot)
                         <flux:badge
-                            :color="$slot->checkin ? 'green' : ($slot->channel->value === 'phone' ? 'sky' : 'emerald')"
+                            :color="$slot->checkin ? 'green' : 'sky'"
                             size="sm"
                         >
                             {{ sprintf('%02d:00', $slot->hour) }} — {{ $slot->channel->label() }}

@@ -104,7 +104,6 @@ class AdminScheduleCoverageTest extends TestCase
         $admin = User::factory()->admin()->create();
         $agent = User::factory()->agent()->create([
             'supports_phone' => true,
-            'supports_chat' => false,
         ]);
 
         $weeks = app(WeekRange::class);

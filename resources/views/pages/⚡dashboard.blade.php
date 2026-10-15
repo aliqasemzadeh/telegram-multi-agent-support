@@ -69,13 +69,13 @@ new #[Title('Dashboard')] class extends Component {
     }
 
     /**
-     * @return array{phone: int, chat: int, total: int}
+     * @return array{phone: int, total: int}
      */
     #[Computed]
     public function stats(): array
     {
         if (! $this->isAdmin && ! $this->isAgent) {
-            return ['phone' => 0, 'chat' => 0, 'total' => 0];
+            return ['phone' => 0, 'total' => 0];
         }
 
         $query = AgentScheduleSlot::query()
@@ -85,18 +85,13 @@ new #[Title('Dashboard')] class extends Component {
             $query->where('user_id', Auth::id());
         }
 
-        $rows = $query
-            ->selectRaw('channel, count(*) as total')
-            ->groupBy('channel')
-            ->pluck('total', 'channel');
-
-        $phone = (int) ($rows[SupportChannel::Phone->value] ?? 0);
-        $chat = (int) ($rows[SupportChannel::Chat->value] ?? 0);
+        $phone = (int) $query
+            ->where('channel', SupportChannel::Phone->value)
+            ->count();
 
         return [
             'phone' => $phone,
-            'chat' => $chat,
-            'total' => $phone + $chat,
+            'total' => $phone,
         ];
     }
 
@@ -118,9 +113,6 @@ new #[Title('Dashboard')] class extends Component {
                 'scheduleSlots as phone_hours' => fn ($q) => $q
                     ->where('schedule_week_id', $weekId)
                     ->where('channel', SupportChannel::Phone->value),
-                'scheduleSlots as chat_hours' => fn ($q) => $q
-                    ->where('schedule_week_id', $weekId)
-                    ->where('channel', SupportChannel::Chat->value),
             ])
             ->orderBy('name')
             ->paginate(10);
@@ -147,15 +139,10 @@ new #[Title('Dashboard')] class extends Component {
     </div>
 
     @if ($this->isAdmin || $this->isAgent)
-        <div class="grid gap-4 md:grid-cols-3">
+        <div class="grid gap-4 md:grid-cols-2">
             <flux:card class="space-y-2">
                 <flux:text class="text-sm">{{ __('app.dashboard.phone_hours') }}</flux:text>
                 <flux:heading size="xl" class="text-sky-600 dark:text-sky-400">{{ $this->stats['phone'] }}</flux:heading>
-            </flux:card>
-
-            <flux:card class="space-y-2">
-                <flux:text class="text-sm">{{ __('app.dashboard.chat_hours') }}</flux:text>
-                <flux:heading size="xl" class="text-emerald-600 dark:text-emerald-400">{{ $this->stats['chat'] }}</flux:heading>
             </flux:card>
 
             <flux:card class="space-y-2">
@@ -254,7 +241,6 @@ new #[Title('Dashboard')] class extends Component {
                     <flux:table.column>{{ __('app.agents.name') }}</flux:table.column>
                     <flux:table.column>{{ __('app.agents.email') }}</flux:table.column>
                     <flux:table.column>{{ __('app.dashboard.phone_hours') }}</flux:table.column>
-                    <flux:table.column>{{ __('app.dashboard.chat_hours') }}</flux:table.column>
                     <flux:table.column>{{ __('app.dashboard.total_hours') }}</flux:table.column>
                 </flux:table.columns>
                 <flux:table.rows>
@@ -263,12 +249,11 @@ new #[Title('Dashboard')] class extends Component {
                             <flux:table.cell>{{ $agent->name }}</flux:table.cell>
                             <flux:table.cell>{{ $agent->email }}</flux:table.cell>
                             <flux:table.cell>{{ $agent->phone_hours }}</flux:table.cell>
-                            <flux:table.cell>{{ $agent->chat_hours }}</flux:table.cell>
-                            <flux:table.cell>{{ $agent->phone_hours + $agent->chat_hours }}</flux:table.cell>
+                            <flux:table.cell>{{ $agent->phone_hours }}</flux:table.cell>
                         </flux:table.row>
                     @empty
                         <flux:table.row>
-                            <flux:table.cell colspan="5">{{ __('app.dashboard.no_agents') }}</flux:table.cell>
+                            <flux:table.cell colspan="4">{{ __('app.dashboard.no_agents') }}</flux:table.cell>
                         </flux:table.row>
                     @endforelse
                 </flux:table.rows>

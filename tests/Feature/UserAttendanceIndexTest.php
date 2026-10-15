@@ -71,7 +71,7 @@ class UserAttendanceIndexTest extends TestCase
             'user_id' => $other->id,
             'slot_date' => now()->toDateString(),
             'hour' => 10,
-            'channel' => SupportChannel::Chat,
+            'channel' => SupportChannel::Phone,
             'source' => ScheduleSlotSource::Self,
         ]);
 

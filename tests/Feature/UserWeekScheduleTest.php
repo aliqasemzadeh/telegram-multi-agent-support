@@ -74,7 +74,7 @@ class UserWeekScheduleTest extends TestCase
         foreach ($range['days'] as $day) {
             $grid[$day->toDateString()] = array_fill(0, 24, null);
         }
-        $grid[$range['start']->toDateString()][9] = SupportChannel::Chat->value;
+        $grid[$range['start']->toDateString()][9] = SupportChannel::Phone->value;
 
         $this->actingAs($user);
 
@@ -96,23 +96,22 @@ class UserWeekScheduleTest extends TestCase
         $this->actingAs($user);
 
         $component = Livewire::test('pages::user.week')
-            ->set('channel', 'chat')
+            ->set('channel', 'phone')
             ->set('rangeDay', $date)
             ->set('fromHour', 8)
             ->set('toHour', 10)
             ->call('applyRange')
             ->assertHasNoErrors();
 
-        $this->assertSame('chat', $component->get('grid')[$date][8]);
-        $this->assertSame('chat', $component->get('grid')[$date][9]);
-        $this->assertSame('chat', $component->get('grid')[$date][10]);
+        $this->assertSame('phone', $component->get('grid')[$date][8]);
+        $this->assertSame('phone', $component->get('grid')[$date][9]);
+        $this->assertSame('phone', $component->get('grid')[$date][10]);
     }
 
-    public function test_chat_only_agent_defaults_to_chat_channel_and_can_save_slots(): void
+    public function test_agent_without_phone_support_cannot_save_slots(): void
     {
         $user = User::factory()->agent()->create([
             'supports_phone' => false,
-            'supports_chat' => true,
         ]);
         $weeks = app(WeekRange::class);
         $range = $weeks->upcomingWeek();
@@ -121,21 +120,16 @@ class UserWeekScheduleTest extends TestCase
         $this->actingAs($user);
 
         $component = Livewire::test('pages::user.week')
-            ->assertSet('channel', 'chat');
+            ->assertSet('channel', '');
 
         $grid = $component->get('grid');
-        $grid[$date][14] = SupportChannel::Chat->value;
+        $grid[$date][14] = SupportChannel::Phone->value;
 
         $component->set('grid', $grid)
             ->call('save')
             ->assertHasNoErrors();
 
-        $this->assertDatabaseHas('agent_schedule_slots', [
-            'user_id' => $user->id,
-            'slot_date' => $date,
-            'hour' => 14,
-            'channel' => 'chat',
-        ]);
+        $this->assertDatabaseCount('agent_schedule_slots', 0);
     }
 
     public function test_agent_can_navigate_adjacent_weeks(): void

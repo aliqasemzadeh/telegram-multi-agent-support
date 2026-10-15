@@ -21,7 +21,6 @@ class DatabaseSeeder extends Seeder
             'name' => 'Admin',
             'email' => 'admin@example.com',
             'supports_phone' => true,
-            'supports_chat' => true,
         ]);
         $admin->assignRole('admin');
 
@@ -29,7 +28,6 @@ class DatabaseSeeder extends Seeder
             'name' => 'Test Agent',
             'email' => 'test@example.com',
             'supports_phone' => true,
-            'supports_chat' => true,
         ]);
         $agent->assignRole('agent');
     }

@@ -158,7 +158,6 @@ new #[Title('Agent week')] class extends Component {
                                 $value = $grid[$date][$hour] ?? null;
                                 $classes = match ($value) {
                                     'phone' => 'bg-sky-500 text-white',
-                                    'chat' => 'bg-emerald-500 text-white',
                                     default => 'bg-zinc-100 dark:bg-zinc-800',
                                 };
                             @endphp
@@ -169,8 +168,6 @@ new #[Title('Agent week')] class extends Component {
                                 >
                                     @if ($value === 'phone')
                                         <flux:icon.phone class="size-3.5" />
-                                    @elseif ($value === 'chat')
-                                        <flux:icon.message-circle class="size-3.5" />
                                     @endif
                                 </div>
                             </td>

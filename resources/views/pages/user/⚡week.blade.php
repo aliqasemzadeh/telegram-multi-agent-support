@@ -47,8 +47,6 @@ new #[Title('Weekly plan')] class extends Component {
 
         if ($user?->supports_phone) {
             $this->channel = 'phone';
-        } elseif ($user?->supports_chat) {
-            $this->channel = 'chat';
         } else {
             $this->channel = '';
         }
@@ -105,8 +103,7 @@ new #[Title('Weekly plan')] class extends Component {
 
         $user = Auth::user();
         if ($this->channel === '' ||
-            ($this->channel === 'phone' && ! $user?->supports_phone) ||
-            ($this->channel === 'chat' && ! $user?->supports_chat)
+            ($this->channel === 'phone' && ! $user?->supports_phone)
         ) {
             return;
         }
@@ -128,9 +125,6 @@ new #[Title('Weekly plan')] class extends Component {
         $allowedChannels = [];
         if ($user?->supports_phone) {
             $allowedChannels[] = 'phone';
-        }
-        if ($user?->supports_chat) {
-            $allowedChannels[] = 'chat';
         }
 
         $this->validate([
@@ -176,10 +170,6 @@ new #[Title('Weekly plan')] class extends Component {
                 }
 
                 if ($channel === SupportChannel::Phone->value && ! $user->supports_phone) {
-                    continue;
-                }
-
-                if ($channel === SupportChannel::Chat->value && ! $user->supports_chat) {
                     continue;
                 }
 
@@ -253,7 +243,7 @@ new #[Title('Weekly plan')] class extends Component {
         </flux:callout>
     @endif
 
-    @if (! auth()->user()?->supports_phone && ! auth()->user()?->supports_chat)
+    @if (! auth()->user()?->supports_phone)
         <flux:callout variant="danger">
             {{ __('app.schedule.no_agents_for_channel') }}
         </flux:callout>
@@ -263,9 +253,6 @@ new #[Title('Weekly plan')] class extends Component {
                 <flux:select wire:model.live="channel" :label="__('app.schedule.channel')">
                     @if (auth()->user()?->supports_phone)
                         <flux:select.option value="phone">{{ __('app.channel.phone') }}</flux:select.option>
-                    @endif
-                    @if (auth()->user()?->supports_chat)
-                        <flux:select.option value="chat">{{ __('app.channel.chat') }}</flux:select.option>
                     @endif
                 </flux:select>
 
@@ -343,7 +330,6 @@ new #[Title('Weekly plan')] class extends Component {
                                 $value = $grid[$date][$hour] ?? null;
                                 $classes = match ($value) {
                                     'phone' => 'bg-sky-500 text-white',
-                                    'chat' => 'bg-emerald-500 text-white',
                                     default => 'bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700',
                                 };
                             @endphp
@@ -357,8 +343,6 @@ new #[Title('Weekly plan')] class extends Component {
                                 >
                                     @if ($value === 'phone')
                                         <flux:icon.phone class="size-3.5" />
-                                    @elseif ($value === 'chat')
-                                        <flux:icon.message-circle class="size-3.5" />
                                     @endif
                                 </button>
                             </td>

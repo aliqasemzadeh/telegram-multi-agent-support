@@ -25,8 +25,6 @@ new #[Title('Agents')] class extends Component {
 
     public bool $supportsPhone = true;
 
-    public bool $supportsChat = true;
-
     public string $role = 'agent';
 
     public function mount(): void
@@ -69,7 +67,6 @@ new #[Title('Agents')] class extends Component {
         $this->email = $user->email;
         $this->password = '';
         $this->supportsPhone = $user->supports_phone;
-        $this->supportsChat = $user->supports_chat;
         $this->role = $user->roles->first()?->name ?? 'agent';
 
         $this->modal('agent-form')->show();
@@ -88,7 +85,6 @@ new #[Title('Agents')] class extends Component {
                 Rule::unique('users', 'email')->ignore($this->editingId),
             ],
             'supportsPhone' => ['boolean'],
-            'supportsChat' => ['boolean'],
             'role' => ['required', Rule::in(['admin', 'agent'])],
             'password' => [$this->editingId ? 'nullable' : 'required', 'string', 'min:8'],
         ];
@@ -103,7 +99,6 @@ new #[Title('Agents')] class extends Component {
             'name' => $validated['name'],
             'email' => $validated['email'],
             'supports_phone' => $validated['supportsPhone'],
-            'supports_chat' => $validated['supportsChat'],
         ]);
 
         if (! empty($validated['password'])) {
@@ -145,7 +140,6 @@ new #[Title('Agents')] class extends Component {
         $this->email = '';
         $this->password = '';
         $this->supportsPhone = true;
-        $this->supportsChat = true;
         $this->role = 'agent';
         $this->resetValidation();
     }
@@ -183,9 +177,6 @@ new #[Title('Agents')] class extends Component {
                             <div class="flex flex-wrap gap-1">
                                 @if ($agent->supports_phone)
                                     <flux:badge color="sky" size="sm">{{ __('app.channel.phone') }}</flux:badge>
-                                @endif
-                                @if ($agent->supports_chat)
-                                    <flux:badge color="emerald" size="sm">{{ __('app.channel.chat') }}</flux:badge>
                                 @endif
                             </div>
                         </flux:table.cell>
@@ -259,7 +250,6 @@ new #[Title('Agents')] class extends Component {
                 </flux:select>
 
                 <flux:checkbox wire:model="supportsPhone" :label="__('app.agents.supports_phone')" />
-                <flux:checkbox wire:model="supportsChat" :label="__('app.agents.supports_chat')" />
 
                 <flux:button type="submit" variant="primary" color="orange" class="w-full">
                     {{ __('app.common.save') }}
