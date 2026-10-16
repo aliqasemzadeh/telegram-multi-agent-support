@@ -15,6 +15,9 @@ use Illuminate\Support\Str;
 use Laravel\Fortify\Contracts\PasskeyUser;
 use Laravel\Fortify\PasskeyAuthenticatable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 use Spatie\Permission\Traits\HasRoles;
 
 /**
@@ -60,6 +63,29 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
     public function checkins(): HasMany
     {
         return $this->hasMany(AgentCheckin::class);
+    }
+
+    /**
+     * Ensure the user has at least the default agent role and permissions when roleless.
+     */
+    public function ensureDefaultAgentRole(): void
+    {
+        if (! class_exists(Role::class) || $this->roles()->exists()) {
+            return;
+        }
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+        $manageOwn = Permission::findOrCreate('schedule.manage-own', 'web');
+        $checkIn = Permission::findOrCreate('schedule.check-in', 'web');
+
+        $role = Role::findOrCreate('agent', 'web');
+        if (! $role->hasPermissionTo($manageOwn) || ! $role->hasPermissionTo($checkIn)) {
+            $role->givePermissionTo([$manageOwn, $checkIn]);
+        }
+
+        $this->assignRole($role);
+        $this->unsetRelation('roles')->unsetRelation('permissions');
     }
 
     /**

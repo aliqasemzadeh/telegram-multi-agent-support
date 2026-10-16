@@ -1,11 +1,18 @@
 <?php
 
+use App\Services\Auth\ImpersonationService;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome')->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::livewire('dashboard', 'pages::dashboard')->name('dashboard');
+
+    Route::post('impersonation/leave', function (ImpersonationService $impersonation) {
+        $impersonation->leave();
+
+        return redirect()->route('admin.agents');
+    })->name('impersonation.leave');
 
     Route::middleware(['permission:schedule.check-in'])->group(function () {
         Route::livewire('user', 'pages::user.index')->name('user.index');

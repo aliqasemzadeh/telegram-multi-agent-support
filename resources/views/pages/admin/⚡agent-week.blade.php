@@ -3,7 +3,9 @@
 use App\Models\AgentScheduleSlot;
 use App\Models\ScheduleWeek;
 use App\Models\User;
+use App\Services\Auth\ImpersonationService;
 use App\Services\Schedule\WeekRange;
+use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
@@ -20,6 +22,7 @@ new #[Title('Agent week')] class extends Component {
     public function mount(User $user, WeekRange $weeks, ?int $week = null): void
     {
         abort_unless(Auth::user()?->can('schedule.view-coverage'), 403);
+        $user->ensureDefaultAgentRole();
         abort_unless($user->hasRole('agent'), 404);
 
         $this->user = $user;
@@ -85,6 +88,24 @@ new #[Title('Agent week')] class extends Component {
             navigate: true,
         );
     }
+
+    public function impersonate(ImpersonationService $impersonation): void
+    {
+        abort_unless(Auth::user()?->can('agents.manage'), 403);
+
+        if ($this->user->id === Auth::id()) {
+            return;
+        }
+
+        $impersonation->start($this->user);
+
+        Flux::toast(variant: 'success', text: __('app.impersonation.started', ['name' => $this->user->name]));
+
+        $this->redirect(
+            route('user.week', ['week' => $this->week]),
+            navigate: true,
+        );
+    }
 }; ?>
 
 <section class="w-full space-y-6">
@@ -94,7 +115,20 @@ new #[Title('Agent week')] class extends Component {
             <flux:text>{{ $this->weekMeta['label'] }}</flux:text>
         </div>
 
-        <div class="flex gap-2">
+        <div class="flex flex-wrap gap-2">
+            @can('agents.manage')
+                @if ($user->id !== auth()->id())
+                    <flux:button
+                        size="sm"
+                        variant="primary"
+                        color="amber"
+                        icon="arrow-right-end-on-rectangle"
+                        wire:click="impersonate"
+                    >
+                        {{ __('app.agents.impersonate') }}
+                    </flux:button>
+                @endif
+            @endcan
             <flux:tooltip content="{{ __('app.schedule.prev_week') }}">
                 <flux:button
                     size="sm"

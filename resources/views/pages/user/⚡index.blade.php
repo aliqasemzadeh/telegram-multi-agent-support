@@ -12,6 +12,7 @@ use Livewire\Component;
 new #[Title('Attendance')] class extends Component {
     public function mount(): void
     {
+        Auth::user()?->ensureDefaultAgentRole();
         abort_unless(Auth::user()?->can('schedule.check-in'), 403);
     }
 
@@ -86,16 +87,43 @@ new #[Title('Attendance')] class extends Component {
 }; ?>
 
 <section class="w-full space-y-6">
-    <div class="flex flex-col gap-2">
-        <flux:heading size="xl">{{ __('app.schedule.attendance_title') }}</flux:heading>
-        <flux:text>{{ __('app.schedule.attendance_subtitle') }} — {{ __('app.schedule.current_week') }}</flux:text>
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div class="flex flex-col gap-2">
+            <flux:heading size="xl">{{ __('app.schedule.attendance_title') }}</flux:heading>
+            <flux:text>{{ __('app.schedule.attendance_subtitle') }} — {{ __('app.schedule.current_week') }}</flux:text>
+        </div>
+
+        <flux:button
+            variant="primary"
+            color="orange"
+            icon="calendar"
+            :href="route('user.week')"
+            wire:navigate
+            class="w-full sm:w-auto"
+        >
+            {{ __('app.schedule.go_to_week_plan') }}
+        </flux:button>
     </div>
 
     <flux:card class="space-y-4">
-        <flux:heading size="lg">{{ __('app.schedule.attendance_title') }} ({{ now()->toDateString() }})</flux:heading>
+        <flux:heading size="lg">
+            {{ __('app.schedule.attendance_title') }} ({{ app(\App\Services\Schedule\WeekRange::class)->dayLabel(now()) }})
+        </flux:heading>
 
         @if ($this->todaySlots->isEmpty())
-            <flux:text>{{ __('app.schedule.no_slots_today') }}</flux:text>
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <flux:text>{{ __('app.schedule.no_slots_today') }}</flux:text>
+                <flux:button
+                    size="sm"
+                    variant="primary"
+                    color="teal"
+                    icon="calendar-days"
+                    :href="route('user.week', ['week' => $this->weekMeta['week']->id])"
+                    wire:navigate
+                >
+                    {{ __('app.schedule.go_to_week_plan') }}
+                </flux:button>
+            </div>
         @else
             <flux:table>
                 <flux:table.columns>

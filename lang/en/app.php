@@ -18,8 +18,8 @@ return [
 
     'dashboard' => [
         'title' => 'Dashboard',
-        'subtitle_agent' => 'Your scheduled hours and week access',
-        'subtitle_admin' => 'Agents list and weekly hour totals',
+        'subtitle_agent' => 'Your scheduled hours, attendance status, and quick access to weekly shifts',
+        'subtitle_admin' => 'Agents list, weekly hour totals, and impersonation to fill agent shifts',
         'phone_hours' => 'Phone hours',
         'total_hours' => 'Total hours',
         'weeks' => 'Weeks',
@@ -29,6 +29,15 @@ return [
         'no_weeks' => 'No weeks found.',
         'no_agents' => 'No agents found.',
         'team_totals' => 'Team totals',
+        'quick_access' => 'Agent quick access',
+        'quick_access_subtitle' => 'Use the links below to set your shifts for next week or current week and check in for today.',
+        'set_upcoming_shifts' => 'Set next week shifts',
+        'view_current_week_shifts' => 'Current week plan',
+        'today_attendance' => 'Today attendance',
+        'upcoming_week_hours' => 'Next week hours',
+        'today_shifts' => 'Today shifts',
+        'my_week_hours' => 'My hours',
+        'fill_agent_shifts' => 'Impersonate & fill shifts',
     ],
 
     'schedule' => [
@@ -85,6 +94,7 @@ return [
         'prev_week' => 'Previous week',
         'next_week' => 'Next week',
         'unassign_toast' => 'Agent removed from this hour.',
+        'go_to_week_plan' => 'Set & edit weekly shifts',
     ],
 
     'agents' => [
@@ -103,6 +113,13 @@ return [
         'actions' => 'Actions',
         'view_week' => 'View week',
         'week_title' => ':name weekly plan',
+        'impersonate' => 'Log in as agent & fill shifts',
+    ],
+
+    'impersonation' => [
+        'banner' => 'You are logged in as ":name" and can fill or edit their shifts.',
+        'leave' => 'Return to admin account',
+        'started' => 'Logged in as :name.',
     ],
 
     'common' => [

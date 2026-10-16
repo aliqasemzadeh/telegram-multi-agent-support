@@ -6,6 +6,7 @@ use App\Enums\ScheduleSlotSource;
 use App\Enums\SupportChannel;
 use App\Models\AgentScheduleSlot;
 use App\Models\User;
+use App\Services\Auth\ImpersonationService;
 use App\Services\Schedule\WeekRange;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -107,5 +108,109 @@ class DashboardTest extends TestCase
             ->test('pages::user.week')
             ->assertSet('weekId', $week->id)
             ->assertOk();
+    }
+
+    public function test_roleless_user_gets_agent_role_on_dashboard_and_sees_shift_links(): void
+    {
+        $user = User::factory()->create();
+        $this->assertFalse($user->hasRole('agent'));
+
+        $this->actingAs($user);
+
+        Livewire::test('pages::dashboard')
+            ->assertOk()
+            ->assertSee(__('app.dashboard.quick_access'))
+            ->assertSee(__('app.dashboard.set_upcoming_shifts'))
+            ->assertSee(__('app.dashboard.view_current_week_shifts'))
+            ->assertSee(__('app.dashboard.today_attendance'));
+
+        $user->refresh();
+        $this->assertTrue($user->hasRole('agent'));
+        $this->assertTrue($user->can('schedule.manage-own'));
+        $this->assertTrue($user->can('schedule.check-in'));
+
+        $this->get(route('user.week'))->assertOk();
+        $this->get(route('user.index'))->assertOk();
+    }
+
+    public function test_admin_can_impersonate_agent_from_agents_page_fill_shifts_and_return(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $agent = User::factory()->create([
+            'name' => 'Target Agent',
+            'supports_phone' => false,
+        ]);
+
+        $weeks = app(WeekRange::class);
+        $range = $weeks->upcomingWeek();
+        $date = $range['start']->toDateString();
+
+        $this->actingAs($admin);
+
+        Livewire::test('pages::admin.agents')
+            ->call('impersonate', $agent->id)
+            ->assertRedirect(route('user.week'));
+
+        $this->assertAuthenticatedAs($agent);
+        $this->assertSame($admin->id, session(ImpersonationService::SESSION_KEY));
+        $this->assertTrue($agent->fresh()->hasRole('agent'));
+        $this->assertTrue($agent->fresh()->supports_phone);
+
+        $this->get(route('user.week'))
+            ->assertOk()
+            ->assertSee(__('app.impersonation.banner', ['name' => $agent->name]));
+
+        Livewire::test('pages::user.week')
+            ->set('channel', 'phone')
+            ->set('rangeDay', $date)
+            ->set('fromHour', 9)
+            ->set('toHour', 11)
+            ->call('applyRange')
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('agent_schedule_slots', [
+            'user_id' => $agent->id,
+            'slot_date' => $date,
+            'hour' => 9,
+            'channel' => 'phone',
+        ]);
+
+        $this->post(route('impersonation.leave'))
+            ->assertRedirect(route('admin.agents'));
+
+        $this->assertAuthenticatedAs($admin);
+        $this->assertNull(session(ImpersonationService::SESSION_KEY));
+    }
+
+    public function test_admin_can_impersonate_agent_from_dashboard_for_selected_week(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $agent = User::factory()->agent()->create(['name' => 'Week Agent']);
+        $weeks = app(WeekRange::class);
+        $upcoming = $weeks->findOrCreateWeek($weeks->upcomingWeek()['start']);
+
+        $this->actingAs($admin);
+
+        Livewire::test('pages::dashboard')
+            ->set('selectedWeekId', $upcoming->id)
+            ->call('impersonate', $agent->id)
+            ->assertRedirect(route('user.week', ['week' => $upcoming->id]));
+
+        $this->assertAuthenticatedAs($agent);
+    }
+
+    public function test_agent_cannot_impersonate_another_user(): void
+    {
+        $agent = User::factory()->agent()->create();
+        $other = User::factory()->agent()->create();
+
+        $this->actingAs($agent);
+
+        Livewire::test('pages::dashboard')
+            ->call('impersonate', $other->id)
+            ->assertForbidden();
+
+        $this->assertAuthenticatedAs($agent);
     }
 }

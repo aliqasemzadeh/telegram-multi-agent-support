@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use App\Services\Auth\ImpersonationService;
 use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -9,6 +10,8 @@ use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 
 new #[Title('Agents')] class extends Component {
     use WithPagination;
@@ -110,13 +113,38 @@ new #[Title('Agents')] class extends Component {
         }
 
         $user->save();
-        $user->syncRoles([$validated['role']]);
+
+        $roleModel = Role::findOrCreate($validated['role'], 'web');
+        if ($validated['role'] === 'agent') {
+            $roleModel->givePermissionTo([
+                Permission::findOrCreate('schedule.manage-own', 'web'),
+                Permission::findOrCreate('schedule.check-in', 'web'),
+            ]);
+        }
+        $user->syncRoles([$roleModel]);
 
         $this->modal('agent-form')->close();
         $this->resetForm();
         unset($this->agents);
 
         Flux::toast(variant: 'success', text: __('app.agents.saved'));
+    }
+
+    public function impersonate(int $userId, ImpersonationService $impersonation): void
+    {
+        abort_unless(Auth::user()?->can('agents.manage'), 403);
+
+        $target = User::query()->findOrFail($userId);
+
+        if ($target->id === Auth::id()) {
+            return;
+        }
+
+        $impersonation->start($target);
+
+        Flux::toast(variant: 'success', text: __('app.impersonation.started', ['name' => $target->name]));
+
+        $this->redirect(route('user.week'), navigate: true);
     }
 
     public function delete(int $userId): void
@@ -185,8 +213,19 @@ new #[Title('Agents')] class extends Component {
                         </flux:table.cell>
                         <flux:table.cell>
                             <div class="flex gap-1">
+                                @if ($agent->id !== auth()->id())
+                                    <flux:tooltip content="{{ __('app.agents.impersonate') }}">
+                                        <flux:button
+                                            size="xs"
+                                            variant="primary"
+                                            color="amber"
+                                            icon="arrow-right-end-on-rectangle"
+                                            wire:click="impersonate({{ $agent->id }})"
+                                        />
+                                    </flux:tooltip>
+                                @endif
                                 @can('schedule.view-coverage')
-                                    @if ($agent->hasRole('agent'))
+                                    @if ($agent->hasRole('agent') || $agent->roles->isEmpty())
                                         <flux:tooltip content="{{ __('app.agents.view_week') }}">
                                             <flux:button
                                                 size="xs"
